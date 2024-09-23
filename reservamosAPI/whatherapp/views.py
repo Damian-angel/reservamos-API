@@ -17,16 +17,16 @@ class CityWeatherView(APIView):
             return Response({"error": "City name is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         
-        # get de las cordenadas  desde la api 
+        #?get de las cordenadas  desde la api 
         reservamos_response = self.get_city_coordinates(city_name)
         if not reservamos_response:
             return Response({"error": "City not found"}, status=status.HTTP_404_NOT_FOUND)
         
         
-        #array de los datos del clima 
+        #?array de los datos del clima 
         weather_data = []
 
-        # for de las coordenadas para cada ciudad en la primera api 
+        #?for de las coordenadas para cada ciudad en la primera api 
         for city in reservamos_response:
             weather = self.get_weather_for_city(city['lat'], city['long'])
             if weather:
@@ -39,17 +39,23 @@ class CityWeatherView(APIView):
 
     def get_city_coordinates(self, city_name):
         #fetch de las cuidades 
+        
         try:
             params = {'q': city_name, 'country': 'MX'}
             response = requests.get(self.RESERVAMOS_API_URL, params=params)
             response.raise_for_status()
-            return response.json()
+            
+            #? Filtrar solo las ciudades (result_type = "city")
+            places = response.json()
+            cities = [place for place in places if place.get('result_type') == 'city']
+            return cities
+        
         except requests.RequestException:
             return None
     
     def get_weather_for_city(self, lat, lon):
-        # fetch de las coordenadas 
-        #OpenWeather API
+        # ?fetch de las coordenadas 
+        #?OpenWeather API
         try:
             params = {
                 'lat': lat,
@@ -62,7 +68,7 @@ class CityWeatherView(APIView):
             response.raise_for_status()
             weather_data = response.json().get('daily', [])
             
-            # temp maxima y minima de los 7 dias 
+            # ?temp maxima y minima de los 7 dias 
             return [
                 {'day': i + 1, 'max_temp': day['temp']['max'], 'min_temp': day['temp']['min']}
                 for i, day in enumerate(weather_data[:7])
